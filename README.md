@@ -73,17 +73,60 @@ sudo install -m644 packaging/70-vagalume-rgb.rules /etc/udev/rules.d/
 
 ## Flatpak
 
-Build a single-file bundle (this needs `flatpak-builder`, `cargo` and the Flathub remote, and
-downloads the GNOME SDK on first run), then install it:
+### Install manually
+
+1. Download `vagalume-rgb.flatpak` from the
+   [latest release](https://github.com/Broly1/vagalume-rgb/releases/latest).
+
+2. Install it from the folder you downloaded it to. Flatpak fetches the GNOME runtime from Flathub,
+   so add that remote first if you don't have it:
+
+   ```sh
+   flatpak remote-add --user --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo
+   flatpak install --user --bundle vagalume-rgb.flatpak
+   ```
+
+3. Set up the host, once. A Flatpak can't do either of these itself. Load the `i2c-dev` module now
+   and at every boot:
+
+   ```sh
+   sudo modprobe i2c-dev
+   echo i2c-dev | sudo tee /etc/modules-load.d/i2c-dev.conf
+   ```
+
+   Then install the udev rule that lets you open the card's I2C device:
+
+   ```sh
+   curl -fsSLO https://raw.githubusercontent.com/Broly1/vagalume-rgb/main/packaging/70-vagalume-rgb.rules
+   sudo install -m644 70-vagalume-rgb.rules /etc/udev/rules.d/
+   sudo udevadm control --reload
+   sudo udevadm trigger
+   ```
+
+4. Open Vagalume from the Utilities section of your app menu, or run:
+
+   ```sh
+   flatpak run org.vagalumergb.VagalumeRgb gui
+   ```
+
+To update, repeat steps 1 and 2 with the new file. To remove it:
+
+```sh
+flatpak uninstall --user org.vagalumergb.VagalumeRgb
+```
+
+### Build the bundle
+
+This needs `flatpak-builder`, `cargo` and the Flathub remote, and downloads the GNOME SDK on first
+run. The bundle is written to `flatpak-out/vagalume-rgb.flatpak`.
 
 ```sh
 ./packaging/flatpak/build.sh
-flatpak install --user --bundle flatpak-out/vagalume-rgb.flatpak
-flatpak run org.vagalumergb.VagalumeRgb
 ```
 
-The sandbox has `--device=all`, because `/dev/i2c-*` has no narrower permission. The `i2c-dev` module
-and the udev rule below stay on the host; a Flatpak can't install either. Settings live in
+### Notes
+
+The sandbox has `--device=all`, because `/dev/i2c-*` has no narrower permission. Settings live in
 `~/.var/app/org.vagalumergb.VagalumeRgb/`, separate from a native install.
 
 To restore lighting at login, use `flatpak run org.vagalumergb.VagalumeRgb restore` as the
