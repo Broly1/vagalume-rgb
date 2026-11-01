@@ -3,6 +3,10 @@
 ARGB lighting control for the ONIX Lumi B580 on Linux, with a native window and a command line.
 Unofficial, and not affiliated with ONIX, Intel or any other hardware vendor.
 
+![The Vagalume window showing the Custom effect, with profiles, a color wheel and brightness](docs/images/window.png)
+
+![The tray menu with the lighting switch and saved profiles](docs/images/tray.png)
+
 ## Supported card
 
 **ONIX Lumi B580** (Intel Arc B580), board ID `8086:207e:a002`. This is the only card tested.
