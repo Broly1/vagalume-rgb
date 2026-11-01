@@ -12,10 +12,10 @@ pub type Frame = Vec<u8>;
 pub const REG_BYPASS: u8 = 0x0F;
 pub const REG_MODE: u8 = 0x10;
 pub const REG_DIRECTION: u8 = 0x14;
-pub const REG_INIT: u8 = 0x27; // Purpose unknown; written once at connect.
+pub const REG_STRIP_LENGTH: u8 = 0x27; // LED count; written once at connect.
 pub const REG_BRIGHTNESS: u8 = 0x3E;
 
-pub const INIT_VALUE: u8 = 0x0E;
+pub const STRIP_LENGTH: u8 = 0x0E;
 pub const DEFAULT_BRIGHTNESS: u8 = 0x88;
 
 pub const DIRECTION_LEFT: u8 = 0;
@@ -188,7 +188,7 @@ pub fn validate_frame(frame: &[u8]) -> Result<()> {
         )));
     }
     for &[reg, value] in frame.as_chunks::<2>().0 {
-        if !(is_writable(reg) || (reg == REG_INIT && value == INIT_VALUE)) {
+        if !(is_writable(reg) || (reg == REG_STRIP_LENGTH && value == STRIP_LENGTH)) {
             return Err(Error::Invalid(format!(
                 "register {reg:#04x} is not allowlisted"
             )));
@@ -212,8 +212,8 @@ pub fn init_frame(led_on: bool, bypass: bool) -> Frame {
         if led_on { DEFAULT_BRIGHTNESS } else { 0 },
         REG_BYPASS,
         bypass as u8,
-        REG_INIT,
-        INIT_VALUE,
+        REG_STRIP_LENGTH,
+        STRIP_LENGTH,
     ]
 }
 
@@ -378,7 +378,7 @@ mod tests {
 
     #[test]
     fn init_register_only_accepts_its_one_value() {
-        assert!(validate_frame(&[REG_INIT, 0x01]).is_err());
+        assert!(validate_frame(&[REG_STRIP_LENGTH, 0x01]).is_err());
     }
 
     #[test]

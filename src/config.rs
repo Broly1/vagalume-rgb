@@ -156,7 +156,8 @@ impl Default for Config {
 fn starter_profiles() -> BTreeMap<String, Profile> {
     let mut gaming = default_mode_settings("rainbow");
     gaming.brightness = 255;
-    gaming.params.insert("speed".to_string(), 10);
+    // Response, not Speed, sets how fast Rainbow moves.
+    gaming.params.insert("response".to_string(), 8);
     let mut night = default_mode_settings("custom");
     night.brightness = 24;
     night.color = Some("#FF6A20".to_string());

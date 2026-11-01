@@ -20,6 +20,10 @@ const SUPPORTED_BOARDS: [(u16, u16, u16); 1] = [(0x8086, 0x207E, 0xA002)];
 
 const RETRY_DELAYS: [Duration; 2] = [Duration::from_millis(50), Duration::from_millis(100)];
 
+/// Left after every frame. A mode change sent with other registers turns the
+/// LEDs off, and this much separation is known to work.
+const SETTLE: Duration = Duration::from_millis(50);
+
 pub trait Transport: Send {
     /// Sends one frame and returns the byte the controller answered with.
     fn send(&mut self, frame: &[u8]) -> Result<u8>;
@@ -172,7 +176,10 @@ impl<B: I2cBus> Transport for I2cTransport<B> {
         let mut delays = RETRY_DELAYS.iter();
         loop {
             let error = match self.exchange(frame) {
-                Ok(byte) => return Ok(byte),
+                Ok(byte) => {
+                    (self.sleep)(SETTLE);
+                    return Ok(byte);
+                }
                 Err(error) => error,
             };
             if error.raw_os_error() == Some(libc::ETIMEDOUT) {
@@ -336,6 +343,19 @@ mod tests {
         assert_eq!(std::mem::offset_of!(I2cMsg, buf), 8);
         assert_eq!(std::mem::size_of::<I2cRdwrData>(), 16);
         assert_eq!(std::mem::offset_of!(I2cRdwrData, nmsgs), 8);
+    }
+
+    #[test]
+    fn pauses_after_every_frame() {
+        thread_local!(static SLEPT: std::cell::Cell<Duration> = const { std::cell::Cell::new(Duration::ZERO) });
+        let mut transport = I2cTransport {
+            bus: FakeBus::default(),
+            number: 12,
+            sleep: |delay| SLEPT.set(SLEPT.get() + delay),
+        };
+        transport.send(&[0x10, 0x02]).unwrap();
+        transport.send(&[0x3E, 0x88]).unwrap();
+        assert_eq!(SLEPT.get(), SETTLE * 2);
     }
 
     #[test]
