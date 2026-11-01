@@ -1,6 +1,6 @@
 # Vagalume
 
-ARGB lighting control for graphics cards on Linux, with a native window and a command line.
+ARGB lighting control for the ONIX Lumi B580 on Linux, with a native window and a command line.
 Unofficial, and not affiliated with ONIX, Intel or any other hardware vendor.
 
 ## Supported card

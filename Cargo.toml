@@ -2,7 +2,7 @@
 name = "vagalume-rgb"
 version = "0.2.0"
 edition = "2021"
-description = "ARGB lighting control for graphics cards on Linux"
+description = "ARGB lighting control for the ONIX Lumi B580 on Linux"
 license = "MIT"
 homepage = "https://github.com/Broly1/vagalume-rgb"
 publish = false
