@@ -97,10 +97,16 @@ Selecting a mode sends one frame per item:
 Keep Running in Tray only makes the window hide on close. Nothing is sent to the card. Theme and
 language are also app-only.
 
+## Persistence
+
+The card stores the lighting itself, with no power. The last setting survived a shutdown with the
+power supply switched off and the power button held for 30 seconds to drain it. After the reboot
+Vagalume was not running and no autostart entry or service existed to re-apply anything. This was
+seen with one setting, not checked for each mode.
+
 ## Unknown
 
 - What the `0xFE` from a bare read means.
-- Whether settings survive a power cycle.
 
 Colour order is red, green, blue†.
 
