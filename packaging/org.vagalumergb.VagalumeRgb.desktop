@@ -9,6 +9,6 @@ Comment[zh_CN]=显卡 ARGB 灯光控制
 Exec=vagalume-rgb gui
 Icon=org.vagalumergb.VagalumeRgb
 Terminal=false
-Categories=Settings;HardwareSettings;GTK;
+Categories=Utility;GTK;
 Keywords=RGB;ARGB;LED;GPU;lighting;
 StartupNotify=true
