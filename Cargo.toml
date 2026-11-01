@@ -4,6 +4,7 @@ version = "0.2.0"
 edition = "2021"
 description = "ARGB lighting control for graphics cards on Linux"
 license = "MIT"
+homepage = "https://github.com/Broly1/vagalume-rgb"
 publish = false
 
 [lib]

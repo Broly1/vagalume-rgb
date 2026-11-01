@@ -10,6 +10,7 @@
     <p>Vagalume is unofficial and not affiliated with ONIX or Intel.</p>
     <p>It needs the kernel's i2c-dev module and permission to open the card's I2C device.</p>
   </description>
+  <url type="homepage">https://github.com/Broly1/vagalume-rgb</url>
   <launchable type="desktop-id">org.vagalumergb.VagalumeRgb.desktop</launchable>
   <content_rating type="oars-1.1"/>
   <releases>
