@@ -1,10 +1,21 @@
 # Vagalume
 
 ARGB lighting control for graphics cards on Linux, with a native window and a command line.
-Unofficial, and not affiliated with any hardware vendor.
+Unofficial, and not affiliated with ONIX, Intel or any other hardware vendor.
 
-Confirmed board: `8086:207e:a002`. Other boards are refused unless you pass
-`--allow-unknown-board`.
+## Supported card
+
+**ONIX Lumi B580** (Intel Arc B580), board ID `8086:207e:a002`. This is the only card tested.
+
+Every other card is refused, including other B580 models and other ONIX cards, because they may
+use a different controller. To check yours, run this; it sends nothing to the card:
+
+```sh
+flatpak run org.vagalumergb.VagalumeRgb status    # or: vagalume-rgb status
+```
+
+`--allow-unknown-board` overrides the check. Only use it at your own risk: the chip at this address
+is the card's management controller, and an untested card may respond differently.
 
 ## Features
 

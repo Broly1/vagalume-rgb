@@ -1,6 +1,6 @@
 # LED controller protocol
 
-The Custom effect is confirmed on a real card (`8086:207e:a002`): `mode custom --color '#0000ff'`
+The Custom effect is confirmed on a real ONIX Lumi B580 (`8086:207e:a002`): `mode custom --color '#0000ff'`
 lit the LEDs blue. The other effects are built from the same protocol but have not been individually
 checked on hardware.
 

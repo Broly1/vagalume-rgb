@@ -6,7 +6,8 @@
   <metadata_license>CC0-1.0</metadata_license>
   <project_license>MIT</project_license>
   <description>
-    <p>Vagalume controls the ARGB lighting on supported graphics cards, with seven effects, a color wheel, brightness and speed controls, and a tray icon.</p>
+    <p>Vagalume controls the ARGB lighting on the ONIX Lumi B580 graphics card (board ID 8086:207e:a002), with seven effects, a color wheel, brightness and speed controls, and a tray icon. Other cards are not supported.</p>
+    <p>Vagalume is unofficial and not affiliated with ONIX or Intel.</p>
     <p>It needs the kernel's i2c-dev module and permission to open the card's I2C device.</p>
   </description>
   <launchable type="desktop-id">org.vagalumergb.VagalumeRgb.desktop</launchable>
