@@ -13,7 +13,7 @@ use crate::protocol::{find_mode, DEFAULT_BRIGHTNESS, MODES};
 
 pub const DEFAULT_MODE: &str = "rainbow";
 const THEMES: [&str; 3] = ["system", "light", "dark"];
-const LANGUAGES: [&str; 3] = ["auto", "en", "zh"];
+const LANGUAGES: [&str; 6] = ["auto", "en", "zh", "pt", "es", "fr"];
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct ModeSettings {

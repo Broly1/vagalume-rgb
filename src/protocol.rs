@@ -28,7 +28,6 @@ pub const BREATHING_COLOR_REGS: [u8; 3] = [0xC9, 0xCA, 0xCB];
 pub struct Param {
     pub key: &'static str,
     pub label: &'static str,
-    pub label_zh: &'static str,
     pub reg: u8,
     pub min: i32,
     pub max: i32,
@@ -42,11 +41,19 @@ impl Param {
     const fn new(
         key: &'static str,
         label: &'static str,
-        label_zh: &'static str,
         reg: u8,
         (min, max, default): (i32, i32, i32),
     ) -> Self {
-        Self { key, label, label_zh, reg, min, max, default, invert_from: None, toggle: false }
+        Self {
+            key,
+            label,
+            reg,
+            min,
+            max,
+            default,
+            invert_from: None,
+            toggle: false,
+        }
     }
 
     const fn inverted(mut self, from: i32) -> Self {
@@ -72,7 +79,6 @@ impl Param {
 pub struct Mode {
     pub key: &'static str,
     pub name: &'static str,
-    pub name_zh: &'static str,
     pub id: u8,
     pub params: &'static [Param],
     pub has_direction: bool,
@@ -85,11 +91,10 @@ pub static MODES: [Mode; 7] = [
     Mode {
         key: "rainbow",
         name: "Rainbow",
-        name_zh: "彩虹",
         id: 0x00,
         params: &[
-            Param::new("response", "Response", "响应", 0x18, (2, 13, 2)),
-            Param::new("speed", "Speed", "速度", 0x19, (0, 16, 5)),
+            Param::new("response", "Response", 0x18, (2, 13, 2)),
+            Param::new("speed", "Speed", 0x19, (0, 16, 5)),
         ],
         has_direction: true,
         direction_first: true,
@@ -98,12 +103,11 @@ pub static MODES: [Mode; 7] = [
     Mode {
         key: "chase",
         name: "Chase",
-        name_zh: "追逐",
         id: 0x04,
         params: &[
-            Param::new("interval", "Interval", "间隔", 0x12, (0, 9, 1)),
-            Param::new("response", "Response", "响应", 0x11, (2, 13, 10)).inverted(15),
-            Param::new("bidirectional", "Both directions", "双向", 0x29, (0, 1, 1)).toggle(),
+            Param::new("interval", "Interval", 0x12, (0, 9, 1)),
+            Param::new("response", "Response", 0x11, (2, 13, 10)).inverted(15),
+            Param::new("bidirectional", "Both directions", 0x29, (0, 1, 1)).toggle(),
         ],
         has_direction: true,
         direction_first: false,
@@ -112,9 +116,8 @@ pub static MODES: [Mode; 7] = [
     Mode {
         key: "gradient",
         name: "Gradient",
-        name_zh: "渐变",
         id: 0x05,
-        params: &[Param::new("response", "Response", "响应", 0x13, (2, 13, 10)).inverted(15)],
+        params: &[Param::new("response", "Response", 0x13, (2, 13, 10)).inverted(15)],
         has_direction: false,
         direction_first: false,
         color_regs: None,
@@ -122,11 +125,10 @@ pub static MODES: [Mode; 7] = [
     Mode {
         key: "sequential",
         name: "Sequential",
-        name_zh: "顺序",
         id: 0x03,
         params: &[
-            Param::new("response", "Response", "响应", 0x16, (0, 5, 2)).inverted(5),
-            Param::new("speed", "Speed", "速度", 0x17, (0, 16, 16)).inverted(16),
+            Param::new("response", "Response", 0x16, (0, 5, 2)).inverted(5),
+            Param::new("speed", "Speed", 0x17, (0, 16, 16)).inverted(16),
         ],
         has_direction: true,
         direction_first: false,
@@ -135,9 +137,8 @@ pub static MODES: [Mode; 7] = [
     Mode {
         key: "stacking",
         name: "Stacking",
-        name_zh: "堆叠",
         id: 0x06,
-        params: &[Param::new("speed", "Speed", "速度", 0x20, (2, 13, 10)).inverted(15)],
+        params: &[Param::new("speed", "Speed", 0x20, (2, 13, 10)).inverted(15)],
         has_direction: true,
         direction_first: false,
         color_regs: None,
@@ -145,9 +146,8 @@ pub static MODES: [Mode; 7] = [
     Mode {
         key: "breathing",
         name: "Breathing",
-        name_zh: "呼吸",
         id: 0x02,
-        params: &[Param::new("tempo", "Tempo", "节奏", 0xC8, (2, 13, 6)).inverted(15)],
+        params: &[Param::new("tempo", "Tempo", 0xC8, (2, 13, 6)).inverted(15)],
         has_direction: false,
         direction_first: false,
         color_regs: Some(BREATHING_COLOR_REGS),
@@ -155,7 +155,6 @@ pub static MODES: [Mode; 7] = [
     Mode {
         key: "custom",
         name: "Custom",
-        name_zh: "自定义",
         id: 0x01,
         params: &[],
         has_direction: false,
@@ -175,7 +174,10 @@ fn is_writable(reg: u8) -> bool {
     matches!(reg, REG_BYPASS | REG_MODE | REG_DIRECTION | REG_BRIGHTNESS)
         || CUSTOM_COLOR_REGS.contains(&reg)
         || BREATHING_COLOR_REGS.contains(&reg)
-        || MODES.iter().flat_map(|mode| mode.params).any(|param| param.reg == reg)
+        || MODES
+            .iter()
+            .flat_map(|mode| mode.params)
+            .any(|param| param.reg == reg)
 }
 
 pub fn validate_frame(frame: &[u8]) -> Result<()> {
@@ -187,14 +189,20 @@ pub fn validate_frame(frame: &[u8]) -> Result<()> {
     }
     for &[reg, value] in frame.as_chunks::<2>().0 {
         if !(is_writable(reg) || (reg == REG_INIT && value == INIT_VALUE)) {
-            return Err(Error::Invalid(format!("register {reg:#04x} is not allowlisted")));
+            return Err(Error::Invalid(format!(
+                "register {reg:#04x} is not allowlisted"
+            )));
         }
     }
     Ok(())
 }
 
 pub fn hex(frame: &[u8]) -> String {
-    frame.iter().map(|byte| format!("{byte:02x}")).collect::<Vec<_>>().join(" ")
+    frame
+        .iter()
+        .map(|byte| format!("{byte:02x}"))
+        .collect::<Vec<_>>()
+        .join(" ")
 }
 
 /// The single frame sent once on connecting.
@@ -241,9 +249,17 @@ pub fn mode_frames(mode: &Mode, settings: &ModeSettings, led_on: bool) -> Result
         (true, false) => vec![select, direction],
         (false, _) => vec![select],
     };
-    frames.push(brightness_frame(if led_on { settings.brightness } else { 0 }));
+    frames.push(brightness_frame(if led_on {
+        settings.brightness
+    } else {
+        0
+    }));
     for param in mode.params {
-        let value = settings.params.get(param.key).copied().unwrap_or(param.default);
+        let value = settings
+            .params
+            .get(param.key)
+            .copied()
+            .unwrap_or(param.default);
         frames.push(param_frame(param, value));
     }
     if mode.color_regs.is_some() {
@@ -266,18 +282,28 @@ mod tests {
         let mut settings = default_mode_settings(key);
         edit(&mut settings);
         let mode = find_mode(key).unwrap();
-        mode_frames(mode, &settings, true).unwrap().iter().map(|f| compact(f)).collect()
+        mode_frames(mode, &settings, true)
+            .unwrap()
+            .iter()
+            .map(|f| compact(f))
+            .collect()
     }
 
     // Expected bytes are written out by hand so they cannot follow a table change.
     #[test]
     fn rainbow_sends_direction_first() {
-        assert_eq!(frames("rainbow", |_| ()), ["1400", "1000", "3e88", "1802", "1905"]);
+        assert_eq!(
+            frames("rainbow", |_| ()),
+            ["1400", "1000", "3e88", "1802", "1905"]
+        );
     }
 
     #[test]
     fn chase_inverts_response() {
-        assert_eq!(frames("chase", |_| ()), ["1004", "1400", "3e88", "1201", "1105", "2901"]);
+        assert_eq!(
+            frames("chase", |_| ()),
+            ["1004", "1400", "3e88", "1201", "1105", "2901"]
+        );
     }
 
     #[test]
@@ -287,7 +313,10 @@ mod tests {
 
     #[test]
     fn sequential_inverts_from_five_and_sixteen() {
-        assert_eq!(frames("sequential", |_| ()), ["1003", "1400", "3e88", "1603", "1700"]);
+        assert_eq!(
+            frames("sequential", |_| ()),
+            ["1003", "1400", "3e88", "1603", "1700"]
+        );
     }
 
     #[test]

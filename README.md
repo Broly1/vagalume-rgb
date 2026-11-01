@@ -23,7 +23,8 @@ is the card's management controller, and an untested card may respond differentl
 - Colour wheel, RGB and hex entry, preset swatches
 - Brightness, speed, direction and per-effect settings
 - Lighting on/off, and Motherboard Control to let the board's ARGB header drive the LEDs
-- Saved settings, restore at login, tray icon, English and Chinese
+- Saved settings, restore at login, tray icon
+- English, Brazilian Portuguese, Spanish, French and Chinese, chosen from your system language
 - Follows the desktop's light/dark setting and accent colour on KDE Plasma and GNOME
 
 The tray needs a StatusNotifier host. KDE Plasma has one built in; on GNOME install the

@@ -1,7 +1,12 @@
-//! Window text, in English and Chinese.
+//! Window text: English, Chinese, Brazilian Portuguese, Spanish and French.
+
+use crate::protocol::{Mode, Param, MODES};
 
 pub struct Text {
-    pub zh: bool,
+    /// In the order of `MODES`.
+    pub mode_names: [&'static str; 7],
+    /// In the order of `PARAM_KEYS`.
+    pub param_labels: [&'static str; 5],
     pub effects: &'static str,
     pub color: &'static str,
     pub settings: &'static str,
@@ -41,7 +46,8 @@ pub struct Text {
 }
 
 static ENGLISH: Text = Text {
-    zh: false,
+    mode_names: ["Rainbow", "Chase", "Gradient", "Sequential", "Stacking", "Breathing", "Custom"],
+    param_labels: ["Response", "Speed", "Interval", "Both directions", "Tempo"],
     effects: "Effects",
     color: "Color",
     settings: "Settings",
@@ -81,7 +87,8 @@ static ENGLISH: Text = Text {
 };
 
 static CHINESE: Text = Text {
-    zh: true,
+    mode_names: ["彩虹", "追逐", "渐变", "顺序", "堆叠", "呼吸", "自定义"],
+    param_labels: ["响应", "速度", "间隔", "双向", "节奏"],
     effects: "灯效",
     color: "颜色",
     settings: "设置",
@@ -120,19 +127,220 @@ static CHINESE: Text = Text {
     disconnected: "未连接",
 };
 
-fn system_is_chinese() -> bool {
+static PORTUGUESE: Text = Text {
+    mode_names: ["Arco-íris", "Perseguição", "Gradiente", "Sequencial", "Empilhamento", "Respiração", "Personalizado"],
+    param_labels: ["Resposta", "Velocidade", "Intervalo", "Ambas as direções", "Ritmo"],
+    effects: "Efeitos",
+    color: "Cor",
+    settings: "Ajustes",
+    output: "Saída",
+    red: "Vermelho",
+    green: "Verde",
+    blue: "Azul",
+    hex: "Hexadecimal",
+    brightness: "Brilho",
+    direction: "Direção",
+    left: "Esquerda",
+    right: "Direita",
+    lighting: "Iluminação",
+    bypass: "Controle pela placa-mãe",
+    bypass_hint: "Deixa o conector ARGB da placa-mãe controlar os LEDs",
+    keep: "Manter na bandeja do sistema",
+    keep_hint: "Fechar a janela mantém o app na bandeja do sistema",
+    keep_no_tray: "Este desktop não tem bandeja do sistema",
+    appearance: "Aparência",
+    system: "Seguir o sistema",
+    light: "Claro",
+    dark: "Escuro",
+    reset: "Restaurar padrões",
+    reset_title: "Restaurar a iluminação padrão?",
+    reset_body: "Todos os ajustes de efeitos e cores salvas serão perdidos, e a placa mudará para Arco-íris. Isso não pode ser desfeito.",
+    reset_confirm: "Restaurar",
+    cancel: "Cancelar",
+    about: "Sobre",
+    quit: "Sair",
+    show: "Mostrar janela",
+    retry: "Tentar novamente",
+    about_text: "Controle de iluminação ARGB para placas de vídeo",
+    connecting: "Conectando…",
+    connected: "Conectado em i2c-",
+    dry_run: "Simulação: nada é enviado à placa",
+    disconnected: "Não conectado",
+};
+
+static SPANISH: Text = Text {
+    mode_names: ["Arcoíris", "Persecución", "Degradado", "Secuencial", "Apilado", "Respiración", "Personalizado"],
+    param_labels: ["Respuesta", "Velocidad", "Intervalo", "Ambas direcciones", "Ritmo"],
+    effects: "Efectos",
+    color: "Color",
+    settings: "Ajustes",
+    output: "Salida",
+    red: "Rojo",
+    green: "Verde",
+    blue: "Azul",
+    hex: "Hexadecimal",
+    brightness: "Brillo",
+    direction: "Dirección",
+    left: "Izquierda",
+    right: "Derecha",
+    lighting: "Iluminación",
+    bypass: "Control por la placa base",
+    bypass_hint: "Permite que el conector ARGB de la placa base controle los LED",
+    keep: "Mantener en la bandeja del sistema",
+    keep_hint: "Al cerrar la ventana, la aplicación sigue en la bandeja del sistema",
+    keep_no_tray: "Este escritorio no tiene bandeja del sistema",
+    appearance: "Apariencia",
+    system: "Seguir al sistema",
+    light: "Claro",
+    dark: "Oscuro",
+    reset: "Restaurar valores predeterminados",
+    reset_title: "¿Restaurar la iluminación predeterminada?",
+    reset_body: "Se perderán todos los ajustes de efectos y los colores guardados, y la tarjeta cambiará a Arcoíris. Esta acción no se puede deshacer.",
+    reset_confirm: "Restaurar",
+    cancel: "Cancelar",
+    about: "Acerca de",
+    quit: "Salir",
+    show: "Mostrar ventana",
+    retry: "Reintentar",
+    about_text: "Control de iluminación ARGB para tarjetas gráficas",
+    connecting: "Conectando…",
+    connected: "Conectado en i2c-",
+    dry_run: "Simulación: no se envía nada a la tarjeta",
+    disconnected: "Sin conexión",
+};
+
+static FRENCH: Text = Text {
+    mode_names: ["Arc-en-ciel", "Poursuite", "Dégradé", "Séquentiel", "Empilement", "Respiration", "Personnalisé"],
+    param_labels: ["Réponse", "Vitesse", "Intervalle", "Deux directions", "Rythme"],
+    effects: "Effets",
+    color: "Couleur",
+    settings: "Réglages",
+    output: "Sortie",
+    red: "Rouge",
+    green: "Vert",
+    blue: "Bleu",
+    hex: "Hexadécimal",
+    brightness: "Luminosité",
+    direction: "Direction",
+    left: "Gauche",
+    right: "Droite",
+    lighting: "Éclairage",
+    bypass: "Contrôle par la carte mère",
+    bypass_hint: "Laisse le connecteur ARGB de la carte mère piloter les LED",
+    keep: "Garder dans la zone de notification",
+    keep_hint: "Fermer la fenêtre laisse l'application dans la zone de notification",
+    keep_no_tray: "Ce bureau n'a pas de zone de notification",
+    appearance: "Apparence",
+    system: "Suivre le système",
+    light: "Clair",
+    dark: "Sombre",
+    reset: "Restaurer les valeurs par défaut",
+    reset_title: "Restaurer l'éclairage par défaut ?",
+    reset_body: "Tous les réglages d'effets et les couleurs enregistrées seront perdus, et la carte passera en Arc-en-ciel. Cette action est irréversible.",
+    reset_confirm: "Restaurer",
+    cancel: "Annuler",
+    about: "À propos",
+    quit: "Quitter",
+    show: "Afficher la fenêtre",
+    retry: "Réessayer",
+    about_text: "Contrôle de l'éclairage ARGB pour cartes graphiques",
+    connecting: "Connexion…",
+    connected: "Connecté sur i2c-",
+    dry_run: "Simulation : rien n'est envoyé à la carte",
+    disconnected: "Non connecté",
+};
+
+const PARAM_KEYS: [&str; 5] = ["response", "speed", "interval", "bidirectional", "tempo"];
+
+impl Text {
+    pub fn mode_name(&self, mode: &Mode) -> &'static str {
+        let index = MODES.iter().position(|item| item.key == mode.key);
+        self.mode_names[index.expect("mode comes from MODES")]
+    }
+
+    pub fn param_label(&self, param: &Param) -> &'static str {
+        let index = PARAM_KEYS.iter().position(|key| *key == param.key);
+        self.param_labels[index.expect("every setting has a label")]
+    }
+}
+
+/// Picks by the language part alone, so `es_MX`, `es_AR` and `es_ES` all share
+/// one Spanish, and `fr_CA` and `pt_PT` fall to their language's translation.
+fn for_locale(locale: &str) -> &'static Text {
+    match locale
+        .split(['_', '.', '@', '-'])
+        .next()
+        .unwrap_or_default()
+    {
+        "zh" => &CHINESE,
+        "pt" => &PORTUGUESE,
+        "es" => &SPANISH,
+        "fr" => &FRENCH,
+        _ => &ENGLISH,
+    }
+}
+
+fn system_locale() -> String {
     ["LC_ALL", "LC_MESSAGES", "LANG"]
         .iter()
         .filter_map(|name| std::env::var(name).ok())
         .find(|value| !value.is_empty())
-        .is_some_and(|value| value.starts_with("zh"))
+        .unwrap_or_default()
 }
 
 pub fn text(language: &str) -> &'static Text {
     match language {
-        "zh" => &CHINESE,
-        "en" => &ENGLISH,
-        _ if system_is_chinese() => &CHINESE,
-        _ => &ENGLISH,
+        "auto" => for_locale(&system_locale()),
+        chosen => for_locale(chosen),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn regional_variants_share_their_language() {
+        for locale in ["es_MX.UTF-8", "es_AR.UTF-8", "es_ES.UTF-8", "es"] {
+            assert_eq!(for_locale(locale).cancel, "Cancelar", "{locale}");
+            assert_eq!(for_locale(locale).retry, "Reintentar", "{locale}");
+        }
+        for locale in ["pt_BR.UTF-8", "pt_PT.UTF-8"] {
+            assert_eq!(for_locale(locale).retry, "Tentar novamente", "{locale}");
+        }
+        for locale in ["fr_FR.UTF-8", "fr_CA.UTF-8", "fr_BE@euro"] {
+            assert_eq!(for_locale(locale).retry, "Réessayer", "{locale}");
+        }
+        assert_eq!(for_locale("zh_TW.UTF-8").retry, "重试");
+    }
+
+    #[test]
+    fn unknown_locales_fall_back_to_english() {
+        for locale in ["", "C", "POSIX", "de_DE.UTF-8", "C.UTF-8"] {
+            assert_eq!(for_locale(locale).retry, "Retry", "{locale}");
+        }
+    }
+
+    #[test]
+    fn every_language_names_every_mode_and_setting() {
+        for language in ["en", "zh", "pt", "es", "fr"] {
+            let text = text(language);
+            for mode in &MODES {
+                assert!(!text.mode_name(mode).is_empty());
+                for param in mode.params {
+                    assert!(!text.param_label(param).is_empty());
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn english_table_matches_the_protocol_names() {
+        for mode in &MODES {
+            assert_eq!(ENGLISH.mode_name(mode), mode.name);
+            for param in mode.params {
+                assert_eq!(ENGLISH.param_label(param), param.label);
+            }
+        }
     }
 }

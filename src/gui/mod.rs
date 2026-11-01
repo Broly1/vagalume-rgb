@@ -93,7 +93,7 @@ fn effect_row(index: usize, text: &Text) -> gtk::ListBoxRow {
     preview.add_css_class("effect-preview");
     preview.add_css_class(&format!("effect-{}", mode.key));
     preview.set_valign(gtk::Align::Center);
-    let label = gtk::Label::new(Some(if text.zh { mode.name_zh } else { mode.name }));
+    let label = gtk::Label::new(Some(text.mode_name(mode)));
     label.set_xalign(0.0);
     let content = gtk::Box::new(gtk::Orientation::Horizontal, 12);
     content.append(&preview);
@@ -560,16 +560,8 @@ impl Ui {
             .unwrap_or(0);
         self.effects
             .select_row(self.effects.row_at_index(index as i32).as_ref());
-        self.content_page.set_title(if self.text.zh {
-            mode.name_zh
-        } else {
-            mode.name
-        });
-        self.title.set_title(if self.text.zh {
-            mode.name_zh
-        } else {
-            mode.name
-        });
+        self.content_page.set_title(self.text.mode_name(mode));
+        self.title.set_title(self.text.mode_name(mode));
 
         self.brightness.set_value(settings.brightness as f64);
         self.direction_row.set_visible(mode.has_direction);
@@ -602,11 +594,7 @@ impl Ui {
     }
 
     fn param_row(self: &Rc<Self>, param: &'static Param, value: i32) -> gtk::Widget {
-        let label = if self.text.zh {
-            param.label_zh
-        } else {
-            param.label
-        };
+        let label = self.text.param_label(param);
         let weak = Rc::downgrade(self);
         let change = move |value: i32| {
             if let Some(ui) = weak.upgrade() {

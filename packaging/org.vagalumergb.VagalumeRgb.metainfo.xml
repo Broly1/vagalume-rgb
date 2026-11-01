@@ -3,6 +3,10 @@
   <id>org.vagalumergb.VagalumeRgb</id>
   <name>Vagalume</name>
   <summary>Control your graphics card's ARGB lighting</summary>
+  <summary xml:lang="pt_BR">Controle a iluminação ARGB da sua placa de vídeo</summary>
+  <summary xml:lang="es">Controla la iluminación ARGB de tu tarjeta gráfica</summary>
+  <summary xml:lang="fr">Contrôlez l'éclairage ARGB de votre carte graphique</summary>
+  <summary xml:lang="zh_CN">控制显卡的 ARGB 灯光</summary>
   <metadata_license>CC0-1.0</metadata_license>
   <project_license>MIT</project_license>
   <description>

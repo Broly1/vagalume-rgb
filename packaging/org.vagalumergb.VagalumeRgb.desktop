@@ -2,6 +2,10 @@
 Type=Application
 Name=Vagalume
 Comment=Graphics card ARGB lighting control
+Comment[pt_BR]=Controle de iluminação ARGB para placas de vídeo
+Comment[es]=Control de iluminación ARGB para tarjetas gráficas
+Comment[fr]=Contrôle de l'éclairage ARGB pour cartes graphiques
+Comment[zh_CN]=显卡 ARGB 灯光控制
 Exec=vagalume-rgb gui
 Icon=org.vagalumergb.VagalumeRgb
 Terminal=false
