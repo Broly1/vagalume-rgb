@@ -8,6 +8,7 @@ pub mod device;
 pub mod error;
 pub mod gui;
 pub mod i18n;
+pub mod monitor;
 pub mod protocol;
 pub mod session;
 pub mod tray;

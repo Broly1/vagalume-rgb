@@ -1,13 +1,16 @@
 //! The window. Every control writes through `Session`; this file only wires
 //! widgets to it.
 
+mod panel;
 mod wheel;
 mod worker;
 
 use std::cell::{Cell, RefCell};
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::process::ExitCode;
 use std::rc::Rc;
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::Arc;
 use std::time::Duration;
 
 use adw::prelude::*;
@@ -17,14 +20,17 @@ use crate::color::{parse_color, to_hex, Rgb};
 use crate::config::{config_path, load_config, save_config};
 use crate::error::Result;
 use crate::i18n::{self, Text};
+use crate::monitor::{usage_available, Monitor, Reading};
 use crate::protocol::{find_mode, Param, DIRECTION_LEFT, DIRECTION_RIGHT, MODES};
 use crate::session::Session;
 use crate::tray::{self, TrayEvent, TrayHandle, TrayState};
 use crate::{APP_ID, APP_NAME};
+use panel::MonitorPanel;
 use wheel::ColorWheel;
 use worker::{Event, Worker};
 
 const DEBOUNCE: Duration = Duration::from_millis(120);
+const MONITOR_INTERVAL: Duration = Duration::from_secs(2);
 const PRESETS: [Rgb; 7] = [
     (255, 0, 0),
     (255, 255, 0),
@@ -70,6 +76,7 @@ struct Ui {
     /// Each profile's name, row and "this one is showing" mark.
     profile_rows: RefCell<Vec<(String, adw::ActionRow, gtk::Image)>>,
     tray_state: RefCell<TrayState>,
+    monitor: Rc<MonitorPanel>,
 }
 
 /// A slider row with its current value at the end.
@@ -150,6 +157,8 @@ impl Ui {
         let sidebar_view = adw::ToolbarView::new();
         sidebar_view.add_top_bar(&adw::HeaderBar::new());
         sidebar_view.set_content(Some(&sidebar_scroll));
+        let monitor = MonitorPanel::new(text, usage_available(Path::new("/")));
+        sidebar_view.add_bottom_bar(&monitor.widget);
         let sidebar_page = adw::NavigationPage::builder()
             .title(APP_NAME)
             .child(&sidebar_view)
@@ -343,6 +352,7 @@ impl Ui {
             profile_group,
             profile_rows: RefCell::new(Vec::new()),
             tray_state: RefCell::new(TrayState::default()),
+            monitor,
         });
         ui.connect_controls(&swatch_buttons);
         ui.install_actions();
@@ -904,6 +914,21 @@ impl Ui {
     }
 }
 
+/// Samples off the main thread, and only while the window is showing, because
+/// reading every process's descriptors is too slow for the UI and wasted when hidden.
+fn spawn_monitor(showing: Arc<AtomicBool>, readings: async_channel::Sender<Reading>) {
+    std::thread::spawn(move || {
+        let usage = usage_available(Path::new("/"));
+        let mut monitor = Monitor::new(Path::new("/sys"), Path::new("/proc"), usage);
+        loop {
+            if showing.load(Ordering::Relaxed) && readings.send_blocking(monitor.sample()).is_err() {
+                return;
+            }
+            std::thread::sleep(MONITOR_INTERVAL);
+        }
+    });
+}
+
 fn activate(app: &adw::Application, dry_run: bool, allow_unknown: bool) {
     if let Some(window) = app.active_window() {
         window.present();
@@ -934,6 +959,19 @@ fn activate(app: &adw::Application, dry_run: bool, allow_unknown: bool) {
     glib::spawn_future_local(async move {
         while let Ok(event) = tray_receiver.recv().await {
             listener.on_tray(event);
+        }
+    });
+
+    let showing = Arc::new(AtomicBool::new(true));
+    let flag = showing.clone();
+    ui.window
+        .connect_visible_notify(move |window| flag.store(window.is_visible(), Ordering::Relaxed));
+    let (reading_sender, reading_receiver) = async_channel::bounded(1);
+    spawn_monitor(showing, reading_sender);
+    let listener = ui.clone();
+    glib::spawn_future_local(async move {
+        while let Ok(reading) = reading_receiver.recv().await {
+            listener.monitor.show(reading);
         }
     });
 

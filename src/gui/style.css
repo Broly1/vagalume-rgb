@@ -42,6 +42,55 @@
 .swatch-4 { background: #808080; }
 .swatch-5 { background: #800080; }
 .swatch-6 { background: #ffffff; }
+.monitor {
+  padding: 0 8px 8px;
+  font-family: monospace;
+  font-size: 11px;
+  background: var(--sidebar-bg-color);
+}
+.monitor:backdrop {
+  background: var(--sidebar-backdrop-color);
+}
+/* The margin is half the title's height, so the title sits on the top border. */
+.monitor-box {
+  margin-top: 7px;
+  padding: 11px 7px 6px;
+  border: 1px solid alpha(currentColor, 0.45);
+  border-radius: 2px;
+}
+.monitor-title {
+  margin-left: 8px;
+  padding: 0 4px;
+  font-weight: 700;
+  background: var(--sidebar-bg-color);
+}
+.monitor-title:backdrop {
+  background: var(--sidebar-backdrop-color);
+}
+.monitor-units {
+  margin-right: 8px;
+  padding: 0 2px;
+  background: var(--sidebar-bg-color);
+}
+.monitor-units:backdrop {
+  background: var(--sidebar-backdrop-color);
+}
+.monitor-unit {
+  min-height: 0;
+  min-width: 0;
+  padding: 0 3px;
+  border-radius: 2px;
+  background: none;
+  box-shadow: none;
+  opacity: 0.55;
+}
+.monitor-unit:hover {
+  opacity: 0.85;
+}
+.monitor-unit.active {
+  font-weight: 700;
+  opacity: 1;
+}
 .value-label {
   min-width: 2.2em;
 }

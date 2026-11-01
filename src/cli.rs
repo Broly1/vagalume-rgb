@@ -1,6 +1,7 @@
 //! Command line interface.
 
 use std::path::Path;
+use std::time::Duration;
 
 use clap::{Args, Parser, Subcommand, ValueEnum};
 
@@ -9,6 +10,9 @@ use crate::config::{load_config, save_config, Config};
 use crate::controller::{led_frame, restore_frames, send_all};
 use crate::device::{find_device, open_transport, DryRunTransport, Transport, I2C_ADDRESS};
 use crate::error::{Error, Result};
+use crate::monitor::{
+    format_bytes, format_percent, format_temperature, usage_available, Monitor, Reading,
+};
 use crate::protocol::{bypass_frame, find_mode, Frame, DIRECTION_LEFT, DIRECTION_RIGHT, MODES};
 
 #[derive(Parser)]
@@ -36,6 +40,12 @@ pub enum Command {
     Gui,
     /// Show the detected device and saved settings; sends nothing
     Status,
+    /// Show GPU and VRAM temperature and usage; sends nothing
+    Monitor {
+        /// Show temperatures in Fahrenheit
+        #[arg(long)]
+        fahrenheit: bool,
+    },
     /// Send the saved settings to the card
     Restore,
     /// List effects and their settings
@@ -217,6 +227,27 @@ fn print_status(config: &Config, sysfs: &Path) {
     );
 }
 
+fn print_reading(reading: &Reading, usage: bool, fahrenheit: bool) {
+    println!("GPU temperature: {}", format_temperature(reading.gpu_celsius, fahrenheit));
+    println!(
+        "VRAM temperature: {}",
+        format_temperature(reading.vram_celsius, fahrenheit)
+    );
+    if usage {
+        println!("GPU usage: {}", format_percent(reading.gpu_percent));
+    } else {
+        println!("GPU usage: not available in a Flatpak");
+    }
+    match reading.vram_total {
+        Some(total) => println!(
+            "VRAM used: {} of {}",
+            format_bytes(reading.vram_bytes),
+            format_bytes(Some(total))
+        ),
+        None => println!("VRAM used: {}", format_bytes(reading.vram_bytes)),
+    }
+}
+
 fn save_unless_dry(args: &Cli, config: &Config, path: &Path) -> Result<()> {
     if args.dry_run {
         return Ok(());
@@ -238,6 +269,15 @@ pub fn run(args: &Cli, config_path: &Path, sysfs: &Path) -> Result<()> {
         }
         Command::Status => {
             print_status(&config, sysfs);
+            return Ok(());
+        }
+        Command::Monitor { fahrenheit } => {
+            let usage = usage_available(Path::new("/"));
+            let mut monitor = Monitor::new(sysfs, Path::new("/proc"), usage);
+            monitor.sample();
+            // Usage is the change between two samples.
+            std::thread::sleep(Duration::from_secs(1));
+            print_reading(&monitor.sample(), usage, *fahrenheit);
             return Ok(());
         }
         Command::Restore => restore_frames(&config)?,

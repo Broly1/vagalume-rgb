@@ -3,7 +3,7 @@
 ARGB lighting control for the ONIX Lumi B580 on Linux, with a native window and a command line.
 Unofficial, and not affiliated with ONIX, Intel or any other hardware vendor.
 
-![The Vagalume window showing the Custom effect, with profiles, a color wheel and brightness](docs/images/window.png)
+![The Vagalume window showing the Custom effect, with profiles, a color wheel, output settings and the GPU monitor](docs/images/window.png)
 
 ![The tray menu with the lighting switch and saved profiles](docs/images/tray.png)
 
@@ -30,8 +30,16 @@ is the card's management controller, and an untested card may respond differentl
 - Saved settings, restore at login, tray icon
 - Profiles for your favourite setups, with Gaming and Night to start from, switchable from the tray
 - Lighting on/off from the tray
+- GPU and VRAM temperature, GPU usage and VRAM used, in the window and with `vagalume-rgb monitor`
 - English, Brazilian Portuguese, Spanish, French and Chinese, chosen from your system language
 - Follows the desktop's light/dark setting and accent colour on KDE Plasma and GNOME
+
+Temperatures and VRAM come from the `xe` driver. GPU usage comes from per-process DRM stats, so it
+counts your own apps and may leave out the desktop compositor, which makes it a lower bound. A
+Flatpak can only see its own sandbox, so it does not show GPU usage.
+
+Temperatures start in Celsius. Click `°F` or `°C` on the monitor's border to switch; the choice lasts
+until the window closes. `vagalume-rgb monitor --fahrenheit` does the same on the command line.
 
 The tray needs a StatusNotifier host. KDE Plasma has one built in; on GNOME install the
 AppIndicator extension. Without one, Keep Running in Tray is simply disabled.
@@ -53,6 +61,7 @@ cargo build --release
 ```sh
 vagalume-rgb                               # window
 vagalume-rgb status                        # detect the card; sends nothing
+vagalume-rgb monitor                       # temperatures and usage; sends nothing
 vagalume-rgb --dry-run mode breathing --color '#6d4aff'
 vagalume-rgb mode custom --color '#0000ff'
 vagalume-rgb mode chase --direction right --set response=8

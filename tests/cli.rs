@@ -83,6 +83,25 @@ fn rejects_direction_on_directionless_mode() {
 }
 
 #[test]
+fn monitor_sends_nothing_and_saves_nothing() {
+    let dir = tempfile::tempdir().unwrap();
+    let output = run(dir.path(), &["monitor"]);
+    assert!(output.status.success());
+    let text = stdout(&output);
+    assert!(text.contains("GPU temperature: "), "{text}");
+    assert!(text.contains("VRAM temperature: "), "{text}");
+    assert!(!text.contains("would send"), "{text}");
+    assert!(!dir.path().join("vagalume-rgb").exists());
+}
+
+#[test]
+fn monitor_can_show_fahrenheit() {
+    let dir = tempfile::tempdir().unwrap();
+    let output = run(dir.path(), &["monitor", "--fahrenheit"]);
+    assert!(output.status.success());
+}
+
+#[test]
 fn list_names_every_effect() {
     let dir = tempfile::tempdir().unwrap();
     let text = stdout(&run(dir.path(), &["list"]));

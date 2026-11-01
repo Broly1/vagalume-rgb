@@ -50,6 +50,16 @@ pub struct Text {
     pub connected: &'static str,
     pub dry_run: &'static str,
     pub disconnected: &'static str,
+    pub gpu_temperature: &'static str,
+    pub vram_temperature: &'static str,
+    pub gpu_usage: &'static str,
+    pub vram_used: &'static str,
+    pub usage_hint: &'static str,
+    pub celsius: &'static str,
+    pub fahrenheit: &'static str,
+    pub load_short: &'static str,
+    pub temp_short: &'static str,
+    pub used_short: &'static str,
 }
 
 static ENGLISH: Text = Text {
@@ -98,6 +108,16 @@ static ENGLISH: Text = Text {
     connected: "Connected on i2c-",
     dry_run: "Dry run: nothing is sent to the card",
     disconnected: "Not connected",
+    celsius: "Celsius",
+    fahrenheit: "Fahrenheit",
+    load_short: "Load",
+    temp_short: "Temp",
+    used_short: "Used",
+    gpu_temperature: "GPU temperature",
+    vram_temperature: "VRAM temperature",
+    gpu_usage: "GPU usage",
+    vram_used: "VRAM used",
+    usage_hint: "Counts your own apps. The desktop compositor may be left out, so the real figure can be higher.",
 };
 
 static CHINESE: Text = Text {
@@ -146,6 +166,16 @@ static CHINESE: Text = Text {
     connected: "已连接 i2c-",
     dry_run: "演示模式:不会发送到显卡",
     disconnected: "未连接",
+    celsius: "摄氏度",
+    fahrenheit: "华氏度",
+    load_short: "负载",
+    temp_short: "温度",
+    used_short: "已用",
+    gpu_temperature: "GPU 温度",
+    vram_temperature: "显存温度",
+    gpu_usage: "GPU 使用率",
+    vram_used: "已用显存",
+    usage_hint: "仅统计你自己的应用。桌面合成器可能未计入，实际数值可能更高。",
 };
 
 static PORTUGUESE: Text = Text {
@@ -194,6 +224,16 @@ static PORTUGUESE: Text = Text {
     connected: "Conectado em i2c-",
     dry_run: "Simulação: nada é enviado à placa",
     disconnected: "Não conectado",
+    celsius: "Celsius",
+    fahrenheit: "Fahrenheit",
+    load_short: "Uso",
+    temp_short: "Temp",
+    used_short: "Usada",
+    gpu_temperature: "Temperatura da GPU",
+    vram_temperature: "Temperatura da VRAM",
+    gpu_usage: "Uso da GPU",
+    vram_used: "VRAM usada",
+    usage_hint: "Conta os seus próprios aplicativos. O compositor da área de trabalho pode ficar de fora, então o valor real pode ser maior.",
 };
 
 static SPANISH: Text = Text {
@@ -242,6 +282,16 @@ static SPANISH: Text = Text {
     connected: "Conectado en i2c-",
     dry_run: "Simulación: no se envía nada a la tarjeta",
     disconnected: "Sin conexión",
+    celsius: "Celsius",
+    fahrenheit: "Fahrenheit",
+    load_short: "Uso",
+    temp_short: "Temp",
+    used_short: "Usada",
+    gpu_temperature: "Temperatura de la GPU",
+    vram_temperature: "Temperatura de la VRAM",
+    gpu_usage: "Uso de la GPU",
+    vram_used: "VRAM usada",
+    usage_hint: "Cuenta tus propias aplicaciones. El compositor del escritorio puede quedar fuera, así que el valor real puede ser mayor.",
 };
 
 static FRENCH: Text = Text {
@@ -290,6 +340,16 @@ static FRENCH: Text = Text {
     connected: "Connecté sur i2c-",
     dry_run: "Simulation : rien n'est envoyé à la carte",
     disconnected: "Non connecté",
+    celsius: "Celsius",
+    fahrenheit: "Fahrenheit",
+    load_short: "Util.",
+    temp_short: "Temp",
+    used_short: "Util.",
+    gpu_temperature: "Température du GPU",
+    vram_temperature: "Température de la VRAM",
+    gpu_usage: "Utilisation du GPU",
+    vram_used: "VRAM utilisée",
+    usage_hint: "Compte vos propres applications. Le compositeur du bureau peut être exclu, la valeur réelle peut donc être plus élevée.",
 };
 
 const PARAM_KEYS: [&str; 5] = ["response", "speed", "interval", "bidirectional", "tempo"];
