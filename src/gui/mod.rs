@@ -17,9 +17,9 @@ use crate::color::{parse_color, to_hex, Rgb};
 use crate::config::{config_path, load_config, save_config};
 use crate::error::Result;
 use crate::i18n::{self, Text};
-use crate::protocol::{Param, DIRECTION_LEFT, DIRECTION_RIGHT, MODES};
+use crate::protocol::{find_mode, Param, DIRECTION_LEFT, DIRECTION_RIGHT, MODES};
 use crate::session::Session;
-use crate::tray::{self, TrayEvent, TrayHandle};
+use crate::tray::{self, TrayEvent, TrayHandle, TrayState};
 use crate::{APP_ID, APP_NAME};
 use wheel::ColorWheel;
 use worker::{Event, Worker};
@@ -66,6 +66,10 @@ struct Ui {
     led_row: adw::SwitchRow,
     bypass_row: adw::SwitchRow,
     keep_row: adw::SwitchRow,
+    profile_group: adw::PreferencesGroup,
+    /// Each profile's name, row and "this one is showing" mark.
+    profile_rows: RefCell<Vec<(String, adw::ActionRow, gtk::Image)>>,
+    tray_state: RefCell<TrayState>,
 }
 
 /// A slider row with its current value at the end.
@@ -226,7 +230,19 @@ impl Ui {
         output_group.add(&bypass_row);
         output_group.add(&keep_row);
 
+        let profile_group = adw::PreferencesGroup::builder()
+            .title(text.profiles)
+            .build();
+        let add_profile = gtk::Button::builder()
+            .icon_name("list-add-symbolic")
+            .tooltip_text(text.save_profile)
+            .valign(gtk::Align::Center)
+            .build();
+        add_profile.add_css_class("flat");
+        profile_group.set_header_suffix(Some(&add_profile));
+
         let page = adw::PreferencesPage::new();
+        page.add(&profile_group);
         page.add(&color_group);
         page.add(&settings_group);
         page.add(&output_group);
@@ -324,10 +340,20 @@ impl Ui {
             led_row,
             bypass_row,
             keep_row,
+            profile_group,
+            profile_rows: RefCell::new(Vec::new()),
+            tray_state: RefCell::new(TrayState::default()),
         });
         ui.connect_controls(&swatch_buttons);
         ui.install_actions();
         ui.load_state();
+        ui.rebuild_profiles();
+        let weak = Rc::downgrade(&ui);
+        add_profile.connect_clicked(move |_| {
+            if let Some(ui) = weak.upgrade() {
+                ui.confirm_save_profile();
+            }
+        });
         ui
     }
 
@@ -546,6 +572,133 @@ impl Ui {
         dialog.present(Some(&self.window));
     }
 
+    fn rebuild_profiles(self: &Rc<Self>) {
+        for (_, row, _) in self.profile_rows.borrow_mut().drain(..) {
+            self.profile_group.remove(&row);
+        }
+        let profiles = self.session.borrow().config.profiles.clone();
+        for (name, profile) in profiles {
+            let mode = find_mode(&profile.mode).expect("profiles are validated on load");
+            let row = adw::ActionRow::builder()
+                .title(name.as_str())
+                .subtitle(self.text.mode_name(mode))
+                .use_markup(false)
+                .activatable(true)
+                .build();
+            let mark = gtk::Image::from_icon_name("object-select-symbolic");
+            row.add_prefix(&mark);
+            let delete = gtk::Button::builder()
+                .icon_name("user-trash-symbolic")
+                .tooltip_text(self.text.delete)
+                .valign(gtk::Align::Center)
+                .build();
+            delete.add_css_class("flat");
+            row.add_suffix(&delete);
+
+            let (weak, chosen) = (Rc::downgrade(self), name.clone());
+            row.connect_activated(move |_| {
+                if let Some(ui) = weak.upgrade() {
+                    ui.apply_profile(&chosen);
+                }
+            });
+            let (weak, chosen) = (Rc::downgrade(self), name.clone());
+            delete.connect_clicked(move |_| {
+                if let Some(ui) = weak.upgrade() {
+                    ui.confirm_delete_profile(chosen.clone());
+                }
+            });
+            self.profile_group.add(&row);
+            self.profile_rows.borrow_mut().push((name, row, mark));
+        }
+        self.show_active_profile();
+    }
+
+    /// Marks the showing profile here and in the tray.
+    fn show_active_profile(&self) {
+        let state = {
+            let session = self.session.borrow();
+            let config = &session.config;
+            TrayState {
+                lighting: config.led,
+                profiles: config.profiles.keys().cloned().collect(),
+                active: config.active_profile().map(str::to_string),
+            }
+        };
+        for (name, _, mark) in self.profile_rows.borrow().iter() {
+            // Hidden by opacity so every name stays aligned.
+            let active = state.active.as_ref() == Some(name);
+            mark.set_opacity(if active { 1.0 } else { 0.0 });
+        }
+        if *self.tray_state.borrow() != state {
+            self.tray_state.replace(state.clone());
+            if let Some(tray) = self.tray.borrow().as_ref() {
+                tray.update(state);
+            }
+        }
+    }
+
+    fn apply_profile(self: &Rc<Self>, name: &str) {
+        let done = self.session.borrow_mut().apply_profile(name);
+        self.report(done);
+        self.load_state();
+        self.schedule_flush();
+    }
+
+    fn confirm_save_profile(self: &Rc<Self>) {
+        let dialog = adw::AlertDialog::new(
+            Some(self.text.save_profile),
+            Some(self.text.save_profile_hint),
+        );
+        let entry = adw::EntryRow::builder()
+            .title(self.text.profile_name)
+            .activates_default(true)
+            .build();
+        entry.set_max_length(32);
+        let list = gtk::ListBox::new();
+        list.add_css_class("boxed-list");
+        list.set_selection_mode(gtk::SelectionMode::None);
+        list.append(&entry);
+        dialog.set_extra_child(Some(&list));
+        dialog.add_responses(&[("cancel", self.text.cancel), ("save", self.text.save)]);
+        dialog.set_response_appearance("save", adw::ResponseAppearance::Suggested);
+        dialog.set_response_enabled("save", false);
+        dialog.set_default_response(Some("save"));
+        dialog.set_close_response("cancel");
+
+        let answer = dialog.clone();
+        entry.connect_changed(move |entry| {
+            answer.set_response_enabled("save", !entry.text().trim().is_empty());
+        });
+        let weak = Rc::downgrade(self);
+        dialog.connect_response(Some("save"), move |_, _| {
+            if let Some(ui) = weak.upgrade() {
+                let done = ui.session.borrow_mut().config.save_profile(&entry.text());
+                ui.report(done);
+                ui.rebuild_profiles();
+                ui.schedule_flush();
+            }
+        });
+        dialog.present(Some(&self.window));
+    }
+
+    fn confirm_delete_profile(self: &Rc<Self>, name: String) {
+        let dialog = adw::AlertDialog::new(Some(self.text.delete_profile), Some(&name));
+        dialog.add_responses(&[("cancel", self.text.cancel), ("delete", self.text.delete)]);
+        dialog.set_response_appearance("delete", adw::ResponseAppearance::Destructive);
+        dialog.set_default_response(Some("cancel"));
+        dialog.set_close_response("cancel");
+        let weak = Rc::downgrade(self);
+        dialog.connect_response(Some("delete"), move |_, _| {
+            if let Some(ui) = weak.upgrade() {
+                let done = ui.session.borrow_mut().config.delete_profile(&name);
+                ui.report(done);
+                ui.rebuild_profiles();
+                ui.schedule_flush();
+            }
+        });
+        dialog.present(Some(&self.window));
+    }
+
     /// Shows the saved state without sending anything.
     fn load_state(self: &Rc<Self>) {
         self.loading.set(true);
@@ -690,6 +843,7 @@ impl Ui {
         if !frames.is_empty() {
             self.worker.borrow().send(frames);
         }
+        self.show_active_profile();
     }
 
     fn on_worker(&self, event: Event) {
@@ -707,12 +861,19 @@ impl Ui {
         }
     }
 
-    fn on_tray(&self, event: TrayEvent) {
+    fn on_tray(self: &Rc<Self>, event: TrayEvent) {
         match event {
             TrayEvent::Show => {
                 self.hold.take();
                 self.window.present();
             }
+            TrayEvent::ToggleLighting => {
+                let on = !self.session.borrow().config.led;
+                self.session.borrow_mut().set_led(on);
+                self.load_state();
+                self.schedule_flush();
+            }
+            TrayEvent::Profile(name) => self.apply_profile(&name),
             TrayEvent::Quit => self.quit(),
         }
     }
@@ -758,7 +919,8 @@ fn activate(app: &adw::Application, dry_run: bool, allow_unknown: bool) {
     let ui = Ui::build(app, session, save_path, worker);
 
     let (tray_sender, tray_receiver) = async_channel::unbounded();
-    let handle = tray::spawn(ui.text, tray_sender);
+    ui.show_active_profile();
+    let handle = tray::spawn(ui.text, tray_sender, ui.tray_state.borrow().clone());
     ui.enable_tray(handle.is_some());
     ui.tray.replace(handle);
 

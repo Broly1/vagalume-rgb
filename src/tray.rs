@@ -7,22 +7,33 @@ use std::path::Path;
 
 use gtk::cairo;
 use ksni::blocking::{Handle, TrayMethods};
-use ksni::menu::StandardItem;
+use ksni::menu::{CheckmarkItem, StandardItem};
 use ksni::{Icon, MenuItem};
 
 use crate::i18n::Text;
 use crate::{APP_ID, APP_NAME};
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Debug)]
 pub enum TrayEvent {
     Show,
+    ToggleLighting,
+    Profile(String),
     Quit,
+}
+
+/// What the tray menu shows; the window sends a new one whenever it changes.
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
+pub struct TrayState {
+    pub lighting: bool,
+    pub profiles: Vec<String>,
+    pub active: Option<String>,
 }
 
 struct Tray {
     text: &'static Text,
     events: async_channel::Sender<TrayEvent>,
     icons: Vec<Icon>,
+    state: TrayState,
 }
 
 impl Tray {
@@ -128,7 +139,7 @@ impl ksni::Tray for Tray {
     }
 
     fn menu(&self) -> Vec<MenuItem<Self>> {
-        vec![
+        let mut items: Vec<MenuItem<Self>> = vec![
             StandardItem {
                 label: self.text.show.to_string(),
                 activate: Box::new(|tray: &mut Self| tray.notify(TrayEvent::Show)),
@@ -136,37 +147,78 @@ impl ksni::Tray for Tray {
             }
             .into(),
             MenuItem::Separator,
+            CheckmarkItem {
+                label: self.text.lighting.to_string(),
+                checked: self.state.lighting,
+                activate: Box::new(|tray: &mut Self| tray.notify(TrayEvent::ToggleLighting)),
+                ..Default::default()
+            }
+            .into(),
+        ];
+        if !self.state.profiles.is_empty() {
+            items.push(MenuItem::Separator);
+        }
+        for name in &self.state.profiles {
+            let chosen = name.clone();
+            items.push(
+                CheckmarkItem {
+                    label: name.clone(),
+                    checked: self.state.active.as_ref() == Some(name),
+                    activate: Box::new(move |tray: &mut Self| {
+                        tray.notify(TrayEvent::Profile(chosen.clone()));
+                    }),
+                    ..Default::default()
+                }
+                .into(),
+            );
+        }
+        items.push(MenuItem::Separator);
+        items.push(
             StandardItem {
                 label: self.text.quit.to_string(),
                 activate: Box::new(|tray: &mut Self| tray.notify(TrayEvent::Quit)),
                 ..Default::default()
             }
             .into(),
-        ]
+        );
+        items
     }
 }
 
 pub struct TrayHandle(Handle<Tray>);
 
 impl TrayHandle {
+    pub fn update(&self, state: TrayState) {
+        self.0.update(move |tray| tray.state = state);
+    }
+
     pub fn shutdown(&self) {
         self.0.shutdown().wait();
     }
 }
 
 /// Returns `None` when the desktop has no tray host.
-pub fn spawn(text: &'static Text, events: async_channel::Sender<TrayEvent>) -> Option<TrayHandle> {
+pub fn spawn(
+    text: &'static Text,
+    events: async_channel::Sender<TrayEvent>,
+    state: TrayState,
+) -> Option<TrayHandle> {
     let icons = ICON_SIZES
         .iter()
         .filter_map(|&size| firefly_icon(size).ok())
         .collect();
     // A Flatpak sandbox may not claim the usual per-process bus name.
     let sandboxed = Path::new("/.flatpak-info").exists();
-    Tray { text, events, icons }
-        .disable_dbus_name(sandboxed)
-        .spawn()
-        .ok()
-        .map(TrayHandle)
+    Tray {
+        text,
+        events,
+        icons,
+        state,
+    }
+    .disable_dbus_name(sandboxed)
+    .spawn()
+    .ok()
+    .map(TrayHandle)
 }
 
 #[cfg(test)]
@@ -176,6 +228,60 @@ mod tests {
     fn pixel(icon: &Icon, x: i32, y: i32) -> [u8; 4] {
         let start = ((y * icon.width + x) * 4) as usize;
         icon.data[start..start + 4].try_into().unwrap()
+    }
+
+    fn tray(state: TrayState) -> (Tray, async_channel::Receiver<TrayEvent>) {
+        let (events, inbox) = async_channel::unbounded();
+        let text = crate::i18n::text("en");
+        (
+            Tray {
+                text,
+                events,
+                icons: Vec::new(),
+                state,
+            },
+            inbox,
+        )
+    }
+
+    fn checkmarks(tray: &Tray) -> Vec<(String, bool)> {
+        ksni::Tray::menu(tray)
+            .into_iter()
+            .filter_map(|item| match item {
+                MenuItem::Checkmark(item) => Some((item.label, item.checked)),
+                _ => None,
+            })
+            .collect()
+    }
+
+    #[test]
+    fn menu_shows_lighting_and_marks_the_active_profile() {
+        let (tray, _inbox) = tray(TrayState {
+            lighting: true,
+            profiles: vec!["Gaming".into(), "Night".into()],
+            active: Some("Night".into()),
+        });
+        let expected = [("Lighting", true), ("Gaming", false), ("Night", true)]
+            .map(|(label, checked)| (label.to_string(), checked));
+        assert_eq!(checkmarks(&tray), expected);
+    }
+
+    #[test]
+    fn clicking_a_profile_reports_its_name() {
+        let (mut tray, inbox) = tray(TrayState {
+            profiles: vec!["Night".into()],
+            ..TrayState::default()
+        });
+        let item = ksni::Tray::menu(&tray)
+            .into_iter()
+            .filter_map(|item| match item {
+                MenuItem::Checkmark(item) => Some(item),
+                _ => None,
+            })
+            .next_back()
+            .unwrap();
+        (item.activate)(&mut tray);
+        assert!(matches!(inbox.try_recv(), Ok(TrayEvent::Profile(name)) if name == "Night"));
     }
 
     #[test]

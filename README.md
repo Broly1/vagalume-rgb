@@ -24,6 +24,8 @@ is the card's management controller, and an untested card may respond differentl
 - Brightness, speed, direction and per-effect settings
 - Lighting on/off, and Motherboard Control to let the board's ARGB header drive the LEDs
 - Saved settings, restore at login, tray icon
+- Profiles for your favourite setups, with Gaming and Night to start from, switchable from the tray
+- Lighting on/off from the tray
 - English, Brazilian Portuguese, Spanish, French and Chinese, chosen from your system language
 - Follows the desktop's light/dark setting and accent colour on KDE Plasma and GNOME
 
@@ -51,6 +53,7 @@ vagalume-rgb --dry-run mode breathing --color '#6d4aff'
 vagalume-rgb mode custom --color '#0000ff'
 vagalume-rgb mode chase --direction right --set response=8
 vagalume-rgb led off
+vagalume-rgb profile apply Night             # also: profile list, save, delete
 vagalume-rgb list                          # every effect's settings
 ```
 

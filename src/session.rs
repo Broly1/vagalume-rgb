@@ -18,7 +18,10 @@ pub struct Session {
 
 impl Session {
     pub fn new(config: Config) -> Self {
-        Self { config, pending: Vec::new() }
+        Self {
+            config,
+            pending: Vec::new(),
+        }
     }
 
     pub fn mode(&self) -> &'static Mode {
@@ -26,14 +29,21 @@ impl Session {
     }
 
     fn queue(&mut self, key: &'static str, frames: Vec<Frame>) {
-        match self.pending.iter_mut().find(|(existing, _)| *existing == key) {
+        match self
+            .pending
+            .iter_mut()
+            .find(|(existing, _)| *existing == key)
+        {
             Some(entry) => entry.1 = frames,
             None => self.pending.push((key, frames)),
         }
     }
 
     pub fn take_frames(&mut self) -> Vec<Frame> {
-        self.pending.drain(..).flat_map(|(_, frames)| frames).collect()
+        self.pending
+            .drain(..)
+            .flat_map(|(_, frames)| frames)
+            .collect()
     }
 
     pub fn select_mode(&mut self, key: &str) -> Result<()> {
@@ -59,7 +69,10 @@ impl Session {
     pub fn set_param(&mut self, key: &'static str, value: i32) {
         let param = self.mode().params.iter().find(|param| param.key == key);
         let param = param.expect("rows are built from the active mode");
-        self.config.settings_mut().params.insert(key.to_string(), value);
+        self.config
+            .settings_mut()
+            .params
+            .insert(key.to_string(), value);
         self.queue(key, vec![protocol::param_frame(param, value)]);
     }
 
@@ -85,10 +98,27 @@ impl Session {
         self.queue("bypass", vec![protocol::bypass_frame(on)]);
     }
 
+    pub fn apply_profile(&mut self, name: &str) -> Result<()> {
+        self.config.apply_profile(name)?;
+        let mut frames = vec![protocol::bypass_frame(false)];
+        frames.extend(protocol::mode_frames(
+            self.mode(),
+            self.config.settings(),
+            true,
+        )?);
+        self.pending.clear();
+        self.queue("mode", frames);
+        Ok(())
+    }
+
     pub fn reset(&mut self) -> Result<()> {
         self.config.reset_lighting();
         let mut frames = vec![protocol::bypass_frame(false)];
-        frames.extend(protocol::mode_frames(self.mode(), self.config.settings(), true)?);
+        frames.extend(protocol::mode_frames(
+            self.mode(),
+            self.config.settings(),
+            true,
+        )?);
         self.pending.clear();
         self.queue("mode", frames);
         Ok(())
@@ -101,7 +131,11 @@ mod tests {
     use crate::protocol::{hex, MODES};
 
     fn sent(session: &mut Session) -> Vec<String> {
-        session.take_frames().iter().map(|frame| hex(frame).replace(' ', "")).collect()
+        session
+            .take_frames()
+            .iter()
+            .map(|frame| hex(frame).replace(' ', ""))
+            .collect()
     }
 
     #[test]
@@ -186,6 +220,23 @@ mod tests {
         assert_eq!(session.config.mode, "rainbow");
         assert!(!session.config.bypass);
         assert_eq!(sent(&mut session)[..3], ["0f00", "1400", "1000"]);
+    }
+
+    #[test]
+    fn applying_a_profile_replaces_pending_changes_and_takes_control() {
+        let mut session = Session::default();
+        session.set_brightness(10);
+        session.set_led(false);
+        session.apply_profile("Night").unwrap();
+        assert_eq!(sent(&mut session), ["0f00", "1001", "3e18", "1aff1b6a1c20"]);
+        assert!(session.config.led);
+    }
+
+    #[test]
+    fn unknown_profile_sends_nothing() {
+        let mut session = Session::default();
+        assert!(session.apply_profile("Nope").is_err());
+        assert!(session.take_frames().is_empty());
     }
 
     #[test]

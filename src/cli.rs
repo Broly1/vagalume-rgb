@@ -12,7 +12,11 @@ use crate::error::{Error, Result};
 use crate::protocol::{bypass_frame, find_mode, Frame, DIRECTION_LEFT, DIRECTION_RIGHT, MODES};
 
 #[derive(Parser)]
-#[command(name = "vagalume-rgb", version, about = "ARGB lighting control for graphics cards")]
+#[command(
+    name = "vagalume-rgb",
+    version,
+    about = "ARGB lighting control for graphics cards"
+)]
 pub struct Cli {
     /// Print frames; touch no hardware
     #[arg(long, global = true)]
@@ -44,6 +48,23 @@ pub enum Command {
     Led { state: Switch },
     /// Let the motherboard ARGB header drive the LEDs
     Bypass { state: Switch },
+    /// List, apply, save or delete profiles
+    Profile {
+        #[command(subcommand)]
+        action: ProfileAction,
+    },
+}
+
+#[derive(Subcommand)]
+pub enum ProfileAction {
+    /// List saved profiles
+    List,
+    /// Apply a profile to the card
+    Apply { name: String },
+    /// Save the current effect as a profile
+    Save { name: String },
+    /// Delete a profile
+    Delete { name: String },
 }
 
 #[derive(Args)]
@@ -109,15 +130,40 @@ fn update_mode(config: &mut Config, args: &ModeArgs) -> Result<()> {
         let param = mode.params.iter().find(|param| param.key == key);
         let (Some(param), Ok(value)) = (param, value.parse::<i32>()) else {
             let keys: Vec<_> = mode.params.iter().map(|param| param.key).collect();
-            let keys = if keys.is_empty() { "none".to_string() } else { keys.join(", ") };
-            return Err(invalid(format!("{} settings are: {keys} (KEY=NUMBER)", mode.name)));
+            let keys = if keys.is_empty() {
+                "none".to_string()
+            } else {
+                keys.join(", ")
+            };
+            return Err(invalid(format!(
+                "{} settings are: {keys} (KEY=NUMBER)",
+                mode.name
+            )));
         };
         if !(param.min..=param.max).contains(&value) {
-            return Err(invalid(format!("{key} must be {}-{}", param.min, param.max)));
+            return Err(invalid(format!(
+                "{key} must be {}-{}",
+                param.min, param.max
+            )));
         }
         settings.params.insert(key.to_string(), value);
     }
     Ok(())
+}
+
+fn print_profiles(config: &Config) {
+    let active = config.active_profile();
+    for (name, profile) in &config.profiles {
+        let mark = if active == Some(name.as_str()) {
+            "*"
+        } else {
+            " "
+        };
+        println!(
+            "{mark} {name}: {}",
+            find_mode(&profile.mode).expect("validated").name
+        );
+    }
 }
 
 fn print_modes() {
@@ -131,7 +177,10 @@ fn print_modes() {
             println!("    color");
         }
         for param in mode.params {
-            println!("    {} {}-{} (default {})", param.key, param.min, param.max, param.default);
+            println!(
+                "    {} {}-{} (default {})",
+                param.key, param.min, param.max, param.default
+            );
         }
     }
 }
@@ -143,7 +192,11 @@ fn print_status(config: &Config, sysfs: &Path) {
             info.bus,
             info.pci_address,
             info.board_text(),
-            if info.supported() { "confirmed" } else { "NOT confirmed" },
+            if info.supported() {
+                "confirmed"
+            } else {
+                "NOT confirmed"
+            },
         ),
         Err(error) => println!("{error}"),
     }
@@ -157,12 +210,26 @@ fn print_status(config: &Config, sysfs: &Path) {
     for (key, value) in &settings.params {
         println!("{key}: {value}");
     }
-    println!("LED: {}, bypass: {}", state(config.led), state(config.bypass));
+    println!(
+        "LED: {}, bypass: {}",
+        state(config.led),
+        state(config.bypass)
+    );
+}
+
+fn save_unless_dry(args: &Cli, config: &Config, path: &Path) -> Result<()> {
+    if args.dry_run {
+        return Ok(());
+    }
+    save_config(config, path)
 }
 
 pub fn run(args: &Cli, config_path: &Path, sysfs: &Path) -> Result<()> {
     let mut config = load_config(config_path);
-    let command = args.command.as_ref().expect("the window handles no command");
+    let command = args
+        .command
+        .as_ref()
+        .expect("the window handles no command");
     let frames: Vec<Frame> = match command {
         Command::Gui => unreachable!("handled before the command line runs"),
         Command::List => {
@@ -190,6 +257,24 @@ pub fn run(args: &Cli, config_path: &Path, sysfs: &Path) -> Result<()> {
             config.bypass = state.enabled();
             vec![bypass_frame(config.bypass)]
         }
+        Command::Profile { action } => match action {
+            ProfileAction::List => {
+                print_profiles(&config);
+                return Ok(());
+            }
+            ProfileAction::Apply { name } => {
+                config.apply_profile(name)?;
+                restore_frames(&config)?
+            }
+            ProfileAction::Save { name } => {
+                config.save_profile(name)?;
+                return save_unless_dry(args, &config, config_path);
+            }
+            ProfileAction::Delete { name } => {
+                config.delete_profile(name)?;
+                return save_unless_dry(args, &config, config_path);
+            }
+        },
     };
 
     let mut transport: Box<dyn Transport> = if args.dry_run {
