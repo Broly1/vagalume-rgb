@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Name=Vagalume
+Comment=Graphics card ARGB lighting control
+Exec=vagalume-rgb gui
+Icon=org.vagalumergb.VagalumeRgb
+Terminal=false
+Categories=Settings;HardwareSettings;GTK;
+Keywords=RGB;ARGB;LED;GPU;lighting;
+StartupNotify=true

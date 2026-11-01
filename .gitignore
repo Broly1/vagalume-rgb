@@ -1,0 +1,6 @@
+/target/
+/vendor/
+/flatpak-out/
+/.flatpak-builder/
+/.cargo/
+/packaging/flatpak/.manifest.yml

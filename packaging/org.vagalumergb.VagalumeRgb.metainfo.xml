@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+  <id>org.vagalumergb.VagalumeRgb</id>
+  <name>Vagalume</name>
+  <summary>Control your graphics card's ARGB lighting</summary>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>MIT</project_license>
+  <description>
+    <p>Vagalume controls the ARGB lighting on supported graphics cards, with seven effects, a color wheel, brightness and speed controls, and a tray icon.</p>
+    <p>It needs the kernel's i2c-dev module and permission to open the card's I2C device.</p>
+  </description>
+  <launchable type="desktop-id">org.vagalumergb.VagalumeRgb.desktop</launchable>
+  <content_rating type="oars-1.1"/>
+  <releases>
+    <release version="0.2.0" date="2026-10-31"/>
+  </releases>
+</component>

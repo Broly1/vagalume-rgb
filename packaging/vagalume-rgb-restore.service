@@ -1,0 +1,9 @@
+[Unit]
+Description=Restore graphics card ARGB lighting
+
+[Service]
+Type=oneshot
+ExecStart=%h/.local/bin/vagalume-rgb restore
+
+[Install]
+WantedBy=default.target

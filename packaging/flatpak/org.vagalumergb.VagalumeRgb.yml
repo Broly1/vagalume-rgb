@@ -1,0 +1,39 @@
+# Build with packaging/flatpak/build.sh, which vendors the Rust crates first
+# because Flatpak builds have no network access.
+app-id: org.vagalumergb.VagalumeRgb
+runtime: org.gnome.Platform
+runtime-version: '@GNOME@'
+sdk: org.gnome.Sdk
+sdk-extensions:
+  - org.freedesktop.Sdk.Extension.rust-stable
+command: vagalume-rgb
+finish-args:
+  - --socket=wayland
+  - --socket=fallback-x11
+  - --share=ipc
+  # /dev/i2c-* has no narrower permission than this.
+  - --device=all
+  - --talk-name=org.kde.StatusNotifierWatcher
+build-options:
+  append-path: /usr/lib/sdk/rust-stable/bin
+  env:
+    CARGO_HOME: /run/build/vagalume-rgb/cargo
+modules:
+  - name: vagalume-rgb
+    buildsystem: simple
+    build-commands:
+      - mkdir -p .cargo
+      - cp packaging/flatpak/cargo-vendor.toml .cargo/config.toml
+      - cargo --offline build --release --locked
+      - install -Dm755 target/release/vagalume-rgb /app/bin/vagalume-rgb
+      - install -Dm644 packaging/org.vagalumergb.VagalumeRgb.desktop /app/share/applications/org.vagalumergb.VagalumeRgb.desktop
+      - install -Dm644 packaging/org.vagalumergb.VagalumeRgb.metainfo.xml /app/share/metainfo/org.vagalumergb.VagalumeRgb.metainfo.xml
+      - install -Dm644 packaging/icons/hicolor/scalable/apps/org.vagalumergb.VagalumeRgb.svg /app/share/icons/hicolor/scalable/apps/org.vagalumergb.VagalumeRgb.svg
+    sources:
+      - type: dir
+        path: ../..
+        skip:
+          - target
+          - .git
+          - .flatpak-builder
+          - flatpak-out

@@ -1,0 +1,47 @@
+.effect-preview {
+  min-width: 34px;
+  min-height: 14px;
+  border-radius: 7px;
+}
+.effect-rainbow {
+  background: linear-gradient(90deg, #f6416c, #ffb238, #3ddc84, #36a3ff, #a55eea);
+}
+.effect-chase {
+  background: repeating-linear-gradient(90deg, #36a3ff 0 6px, #16324d 6px 12px);
+}
+.effect-gradient {
+  background: linear-gradient(90deg, #36d1dc, #5b86e5, #c471ed);
+}
+.effect-sequential {
+  background: repeating-linear-gradient(90deg, #ffd166 0 3px, #4a3b12 3px 9px);
+}
+.effect-stacking {
+  background: linear-gradient(90deg, #3ddc84 60%, #143d27 60%);
+}
+.effect-breathing {
+  background: radial-gradient(circle, #f6f7fb, #6c7286);
+}
+.effect-custom {
+  background: conic-gradient(#f6416c, #ffb238, #3ddc84, #36a3ff, #a55eea, #f6416c);
+}
+
+.color-card {
+  padding: 18px;
+}
+.swatch {
+  min-width: 26px;
+  min-height: 26px;
+  padding: 0;
+  border-radius: 50%;
+  box-shadow: inset 0 0 0 1px alpha(currentColor, 0.2);
+}
+.swatch-0 { background: #ff0000; }
+.swatch-1 { background: #ffff00; }
+.swatch-2 { background: #00ff00; }
+.swatch-3 { background: #0000ff; }
+.swatch-4 { background: #808080; }
+.swatch-5 { background: #800080; }
+.swatch-6 { background: #ffffff; }
+.value-label {
+  min-width: 2.2em;
+}

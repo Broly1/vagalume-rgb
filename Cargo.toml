@@ -1,0 +1,32 @@
+[package]
+name = "vagalume-rgb"
+version = "0.2.0"
+edition = "2021"
+description = "ARGB lighting control for graphics cards on Linux"
+license = "MIT"
+publish = false
+
+[lib]
+name = "vagalume_rgb"
+path = "src/lib.rs"
+
+[[bin]]
+name = "vagalume-rgb"
+path = "src/main.rs"
+
+[dependencies]
+adw = { package = "libadwaita", version = "0.9", features = ["v1_7"] }
+async-channel = "2"
+clap = { version = "4", features = ["derive"] }
+gtk = { package = "gtk4", version = "0.11", features = ["v4_12"] }
+ksni = { version = "0.3", features = ["blocking"] }
+libc = "0.2"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+
+[dev-dependencies]
+tempfile = "3"
+
+[profile.release]
+lto = "thin"
+strip = true
